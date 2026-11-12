@@ -69,6 +69,22 @@ describe('appendSummary', () => {
         const once = appendSummary('## Summary\n\nold\n\n## Appendix\nkeep', 'Summary', 'new');
         expect(appendSummary(once, 'Summary', 'new2')).toBe('## Summary\n\nnew2\n\n## Appendix\nkeep');
     });
+    it('ends the section at the next H1 so it is not swallowed', () => {
+        const out = appendSummary('## Summary\n\nold\n\n# Next\nkeep', 'Summary', 'new');
+        expect(out).toBe('## Summary\n\nnew\n\n# Next\nkeep');
+    });
+    it('matches the heading ignoring trailing whitespace', () => {
+        const out = appendSummary('raw\n\n## Summary  \n\nold\n', 'Summary', 'new');
+        expect(out).toBe('raw\n\n## Summary\n\nnew\n');
+    });
+    it('replaces ### subsections inside the summary section', () => {
+        const out = appendSummary('## Summary\n\nold\n\n### Sub\nx\n\n## After\nkeep', 'Summary', 'new');
+        expect(out).toBe('## Summary\n\nnew\n\n## After\nkeep');
+    });
+    it('keeps prose before a final summary section', () => {
+        const out = appendSummary('# T\nprose\n\n## Summary\n\nold\n', 'Summary', 'new');
+        expect(out).toBe('# T\nprose\n\n## Summary\n\nnew\n');
+    });
     it('supports custom headings', () => {
         expect(appendSummary('raw', 'TL;DR', 'S')).toContain('\n## TL;DR\n');
     });

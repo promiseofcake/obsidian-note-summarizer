@@ -1,5 +1,8 @@
 // Pure note-editing helpers (no Obsidian imports).
-// Known limitation: `## ` lines inside fenced code blocks are treated as real headings.
+// Known limitations:
+// - `#`/`##` lines inside fenced code blocks are treated as real headings.
+// - Text after the summary section with no H1/H2 heading after it is treated as part of
+//   the summary section on a re-run, and is replaced.
 
 const FENCE = '---';
 
@@ -28,13 +31,13 @@ export function noteBodyForPrompt(content: string): string {
 export function appendSummary(content: string, heading: string, summary: string): string {
     const headingLine = `## ${heading}`;
     const lines = content.split('\n');
-    const start = lines.indexOf(headingLine);
+    const start = lines.findIndex((l) => l.trimEnd() === headingLine);
     if (start === -1) {
         return `${content.trimEnd()}\n\n${headingLine}\n\n${summary}\n`;
     }
     let end = lines.length;
     for (let i = start + 1; i < lines.length; i++) {
-        if (lines[i].startsWith('## ')) {
+        if (/^#{1,2} /.test(lines[i])) {
             end = i;
             break;
         }
