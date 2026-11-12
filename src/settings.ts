@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import { AwsAuthError, bedrockConverseText } from 'obsidian-bedrock-client';
 import type { BedrockConnection } from 'obsidian-bedrock-client';
+import { showAwsAuthNotice } from './authNotice';
 import { resolveAwsCliPath } from './awsCli';
 import type NoteSummarizerPlugin from './main';
 
@@ -174,7 +175,7 @@ export class NoteSummarizerSettingTab extends PluginSettingTab {
             new Notice(`Bedrock OK (${s.modelId})`);
         } catch (e) {
             if (e instanceof AwsAuthError) {
-                new Notice(e.fixCommand ? `${e.message}\n${e.fixCommand}` : e.message);
+                showAwsAuthNotice(e);
             } else {
                 new Notice(`Bedrock test failed: ${e instanceof Error ? e.message : 'unknown error'}`);
             }
