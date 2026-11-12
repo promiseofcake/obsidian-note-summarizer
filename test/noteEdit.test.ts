@@ -26,8 +26,8 @@ describe('splitFrontmatter', () => {
 describe('splitFrontmatter fences', () => {
     const crlf = '---\r\na: 1\r\n---\r\nhello\r\n';
     it('handles CRLF frontmatter', () => {
-        expect(noteBodyForPrompt(crlf)).toBe('hello');
-        expect(noteBodyForPrompt(crlf)).not.toContain('a: 1');
+        expect(noteBodyForPrompt(crlf, 'Summary')).toBe('hello');
+        expect(noteBodyForPrompt(crlf, 'Summary')).not.toContain('a: 1');
         expect(replaceWithSummary(crlf, 'S')).toBe('---\r\na: 1\r\n---\r\nS\n');
     });
     it('recognizes a closing fence with trailing space', () => {
@@ -40,77 +40,85 @@ describe('splitFrontmatter fences', () => {
 
 describe('hasSummarizableBody', () => {
     it('is false for whitespace-only body', () => {
-        expect(hasSummarizableBody('---\na: 1\n---\n  \n')).toBe(false);
+        expect(hasSummarizableBody('---\na: 1\n---\n  \n', 'Summary')).toBe(false);
     });
     it('is false for empty content', () => {
-        expect(hasSummarizableBody('')).toBe(false);
+        expect(hasSummarizableBody('', 'Summary')).toBe(false);
     });
     it('is true for text', () => {
-        expect(hasSummarizableBody('x')).toBe(true);
+        expect(hasSummarizableBody('x', 'Summary')).toBe(true);
     });
     it('is true when no closing fence (all body)', () => {
-        expect(hasSummarizableBody('---\na: 1')).toBe(true);
+        expect(hasSummarizableBody('---\na: 1', 'Summary')).toBe(true);
     });
 });
 
 describe('noteBodyForPrompt', () => {
     it('strips frontmatter and trims', () => {
-        expect(noteBodyForPrompt('---\na: 1\n---\nhello\n')).toBe('hello');
+        expect(noteBodyForPrompt('---\na: 1\n---\nhello\n', 'Summary')).toBe('hello');
+    });
+    it('leaves out a previous summary block', () => {
+        expect(noteBodyForPrompt('raw\n\n---\n\n## Summary\n\nold\n', 'Summary')).toBe('raw');
+    });
+});
+
+describe('hasSummarizableBody with a previous summary', () => {
+    it('is false when the note is only a summary block', () => {
+        expect(hasSummarizableBody('---\n\n## Summary\n\nold\n', 'Summary')).toBe(false);
     });
 });
 
 describe('appendSummary', () => {
-    it('appends a new section', () => {
-        expect(appendSummary('# Notes\nraw', 'Summary', 'S')).toBe('# Notes\nraw\n\n## Summary\n\nS\n');
+    const block = (s: string) => `---\n\n## Summary\n\n${s}\n`;
+
+    it('appends a rule, the heading and the summary at the end', () => {
+        expect(appendSummary('# Notes\nraw', 'Summary', 'S')).toBe(`# Notes\nraw\n\n${block('S')}`);
     });
-    it('replaces on repeat, leaving one section', () => {
+    it('puts a blank line before the rule so the last line does not become a heading', () => {
+        expect(appendSummary('raw\n', 'Summary', 'S')).toMatch(/raw\n\n---\n/);
+    });
+    it('replaces the previous block on a re-run, leaving one', () => {
         const once = appendSummary('# Notes\nraw', 'Summary', 'S');
         const twice = appendSummary(once, 'Summary', 'S2');
+        expect(twice).toBe(`# Notes\nraw\n\n${block('S2')}`);
         expect(twice.match(/^## Summary$/gm)).toHaveLength(1);
-        expect(twice).toContain('S2');
-        expect(twice).not.toMatch(/^S$/m);
-        expect(twice).toBe('# Notes\nraw\n\n## Summary\n\nS2\n');
     });
     it('is idempotent in shape', () => {
         const once = appendSummary('# Notes\nraw', 'Summary', 'S');
         expect(appendSummary(once, 'Summary', 'S')).toBe(once);
     });
-    it('keeps following sections with one blank line before them', () => {
-        const out = appendSummary('## Summary\n\nold\n\n## Appendix\nkeep', 'Summary', 'new');
-        expect(out).toBe('## Summary\n\nnew\n\n## Appendix\nkeep');
-        expect(out.indexOf('new')).toBeLessThan(out.indexOf('## Appendix\nkeep'));
+    it('keeps notes added above the summary between runs', () => {
+        const once = appendSummary('raw', 'Summary', 'S');
+        const edited = once.replace('raw', 'raw\nmore');
+        expect(appendSummary(edited, 'Summary', 'S2')).toBe(`raw\nmore\n\n${block('S2')}`);
     });
-    it('is stable when re-summarizing a section followed by another', () => {
-        const once = appendSummary('## Summary\n\nold\n\n## Appendix\nkeep', 'Summary', 'new');
-        expect(appendSummary(once, 'Summary', 'new2')).toBe('## Summary\n\nnew2\n\n## Appendix\nkeep');
+    it('replaces text typed below the summary', () => {
+        const once = appendSummary('raw', 'Summary', 'S');
+        expect(appendSummary(`${once}\nbelow\n`, 'Summary', 'S2')).toBe(`raw\n\n${block('S2')}`);
     });
-    it('ends the section at the next H1 so it is not swallowed', () => {
-        const out = appendSummary('## Summary\n\nold\n\n# Next\nkeep', 'Summary', 'new');
-        expect(out).toBe('## Summary\n\nnew\n\n# Next\nkeep');
+    it('leaves other horizontal rules alone', () => {
+        const notes = 'part 1\n\n---\n\npart 2';
+        const once = appendSummary(notes, 'Summary', 'S');
+        expect(appendSummary(once, 'Summary', 'S2')).toBe(`${notes}\n\n${block('S2')}`);
     });
-    it('matches the heading ignoring trailing whitespace', () => {
-        const out = appendSummary('raw\n\n## Summary  \n\nold\n', 'Summary', 'new');
-        expect(out).toBe('raw\n\n## Summary\n\nnew\n');
+    it('does not treat a hand-written heading without a rule as the summary', () => {
+        const notes = '## Summary\n\nmy own words';
+        expect(appendSummary(notes, 'Summary', 'S')).toBe(`${notes}\n\n${block('S')}`);
     });
-    it('replaces ### subsections inside the summary section', () => {
-        const out = appendSummary('## Summary\n\nold\n\n### Sub\nx\n\n## After\nkeep', 'Summary', 'new');
-        expect(out).toBe('## Summary\n\nnew\n\n## After\nkeep');
-    });
-    it('keeps prose before a final summary section', () => {
-        const out = appendSummary('# T\nprose\n\n## Summary\n\nold\n', 'Summary', 'new');
-        expect(out).toBe('# T\nprose\n\n## Summary\n\nnew\n');
+    it('matches the rule and heading ignoring trailing whitespace', () => {
+        expect(appendSummary('raw\n\n--- \n\n## Summary  \n\nold\n', 'Summary', 'new')).toBe(`raw\n\n${block('new')}`);
     });
     it('supports custom headings', () => {
-        expect(appendSummary('raw', 'TL;DR', 'S')).toContain('\n## TL;DR\n');
+        expect(appendSummary('raw', 'TL;DR', 'S')).toBe('raw\n\n---\n\n## TL;DR\n\nS\n');
     });
-    it('does not match a heading that merely starts with the heading text', () => {
-        const out = appendSummary('## Summary of call\nstuff', 'Summary', 'S');
-        expect(out).toBe('## Summary of call\nstuff\n\n## Summary\n\nS\n');
+    it('preserves frontmatter and never mistakes it for the rule', () => {
+        const once = appendSummary('---\na: 1\n---\nraw', 'Summary', 'S');
+        expect(once).toBe(`---\na: 1\n---\nraw\n\n${block('S')}`);
+        expect(appendSummary(once, 'Summary', 'S2')).toBe(`---\na: 1\n---\nraw\n\n${block('S2')}`);
     });
-    it('preserves frontmatter when appending', () => {
-        expect(appendSummary('---\na: 1\n---\nraw', 'Summary', 'S')).toBe(
-            '---\na: 1\n---\nraw\n\n## Summary\n\nS\n'
-        );
+    it('omits the rule when there are no notes, so it cannot read as frontmatter', () => {
+        expect(appendSummary('', 'Summary', 'S')).toBe('## Summary\n\nS\n');
+        expect(appendSummary('---\na: 1\n---\n', 'Summary', 'S')).toBe('---\na: 1\n---\n## Summary\n\nS\n');
     });
 });
 

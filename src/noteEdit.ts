@@ -1,8 +1,16 @@
 // Pure note-editing helpers (no Obsidian imports).
-// Known limitations:
-// - `#`/`##` lines inside fenced code blocks are treated as real headings.
-// - Text after the summary section with no H1/H2 heading after it is treated as part of
-//   the summary section on a re-run, and is replaced.
+// The summary block always sits at the end of the note:
+//
+//     <notes>
+//
+//     ---
+//
+//     ## <heading>
+//
+//     <summary>
+//
+// A re-run finds the last `---` line whose next non-blank line is `## <heading>` and
+// replaces from there to the end of the note. Text typed below the summary is replaced too.
 
 const FRONTMATTER_DELIMITER = '---';
 
@@ -20,36 +28,43 @@ export function splitFrontmatter(content: string): { frontmatter: string; body: 
     return { frontmatter: '', body: content };
 }
 
-export function hasSummarizableBody(content: string): boolean {
-    return splitFrontmatter(content).body.trim().length > 0;
+/** Index of the summary block's `---` line in `lines`, or -1. */
+function findSummaryBlock(lines: string[], heading: string): number {
+    const headingLine = `## ${heading}`;
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].trimEnd() !== FRONTMATTER_DELIMITER) continue;
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim() === '') j++;
+        if (j < lines.length && lines[j].trimEnd() === headingLine) return i;
+    }
+    return -1;
 }
 
-export function noteBodyForPrompt(content: string): string {
-    return splitFrontmatter(content).body.trim();
+/** Body with any previous summary block removed. */
+function notesOnly(body: string, heading: string): string {
+    const lines = body.split('\n');
+    const block = findSummaryBlock(lines, heading);
+    return block === -1 ? body : lines.slice(0, block).join('\n');
+}
+
+/** Note text sent to the model: no frontmatter, no previous summary. */
+export function noteBodyForPrompt(content: string, heading: string): string {
+    return notesOnly(splitFrontmatter(content).body, heading).trim();
+}
+
+/** True when there is note text besides frontmatter and a previous summary. */
+export function hasSummarizableBody(content: string, heading: string): boolean {
+    return noteBodyForPrompt(content, heading).length > 0;
 }
 
 export function appendSummary(content: string, heading: string, summary: string): string {
-    const headingLine = `## ${heading}`;
-    const lines = content.split('\n');
-    const start = lines.findIndex((l) => l.trimEnd() === headingLine);
-    if (start === -1) {
-        return `${content.trimEnd()}\n\n${headingLine}\n\n${summary}\n`;
-    }
-    let end = lines.length;
-    for (let i = start + 1; i < lines.length; i++) {
-        if (/^#{1,2} /.test(lines[i])) {
-            end = i;
-            break;
-        }
-    }
-    const before = lines.slice(0, start).join('\n');
-    const prefix = start === 0 ? '' : before + '\n';
-    const section = `${headingLine}\n\n${summary}\n`;
-    if (end === lines.length) {
-        return prefix + section;
-    }
-    // Exactly one blank line between the new section and the next heading.
-    return `${prefix}${section}\n${lines.slice(end).join('\n')}`;
+    const { frontmatter, body } = splitFrontmatter(content);
+    const notes = notesOnly(body, heading).trimEnd();
+    const section = `## ${heading}\n\n${summary}\n`;
+    // No rule when there are no notes: a leading `---` would read as frontmatter.
+    if (notes.trim() === '') return `${frontmatter}${section}`;
+    // Blank line before the rule, or the line above would become a setext heading.
+    return `${frontmatter}${notes}\n\n${FRONTMATTER_DELIMITER}\n\n${section}`;
 }
 
 export function replaceWithSummary(content: string, summary: string): string {

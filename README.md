@@ -6,16 +6,28 @@ No credentials are stored by the plugin.
 
 ## Commands
 
-- **Summarize note (append summary)**: adds a `## Summary` section at the end of the note.
+- **Summarize note (append summary)**: adds a horizontal rule and a `## Summary` section at the end of the note.
 - **Summarize note (replace note with summary)**: replaces the note body with the summary and keeps the frontmatter. A confirm dialog comes first; undo with Cmd/Ctrl+Z or file recovery.
 
 Both commands are available when a Markdown note is open. Frontmatter is never sent to the model.
 
+The summary goes at the bottom, below a rule:
+
+```markdown
+…your notes
+
+---
+
+## Summary
+
+…summary…
+```
+
 ### Running it again
 
-Appending again replaces the existing `## <heading>` section instead of adding a second one. The section runs up to the next H1 or H2 heading. Text after the summary with no heading after it counts as part of the summary and is replaced too.
+Appending again replaces the summary block (from its `---` to the end of the note) instead of adding a second one. The old summary is not sent to the model. Anything typed below the summary is part of the block and is replaced too; add notes above the rule.
 
-If a note already has a hand-written `## <heading>` section with the same name (for example from a meeting template), the first append replaces that section up to the next H1 or H2. Change the **Summary heading** setting to a name your notes don't use to avoid this.
+Other horizontal rules, and a hand-written `## Summary` heading with no rule directly above it, are left alone.
 
 ### Edits during the call
 

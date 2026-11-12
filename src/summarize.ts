@@ -31,10 +31,10 @@ export async function summarizeNote(
     if (!deps.cliPath) return { kind: 'no-cli' };
     try {
         const content = await deps.read();
-        if (!hasSummarizableBody(content)) return { kind: 'empty' };
+        if (!hasSummarizableBody(content, settings.summaryHeading)) return { kind: 'empty' };
         // Guard before the call, so a cancelled replace costs nothing.
         if (mode === 'replace' && !(await deps.confirmReplace())) return { kind: 'cancelled' };
-        const text = await deps.converse(settings.systemPrompt, noteBodyForPrompt(content));
+        const text = await deps.converse(settings.systemPrompt, noteBodyForPrompt(content, settings.summaryHeading));
         // Apply to the current content, not the snapshot, so edits made during the call survive.
         // Replace overwrites the body, so it bails out if the body changed during the call.
         let changed = false;
