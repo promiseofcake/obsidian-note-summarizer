@@ -4,16 +4,16 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
     resolve: {
         alias: {
-            obsidian: fileURLToPath(new URL('./test/obsidian-mock.ts', import.meta.url))
+            obsidian: fileURLToPath(new URL('./test/obsidian-mock.ts', import.meta.url)),
+            // Run the shared package from source so the `obsidian` alias reaches it
+            // (its CJS dist would require('obsidian') natively).
+            'obsidian-bedrock-client': fileURLToPath(
+                new URL('./node_modules/obsidian-bedrock-client/src/index.ts', import.meta.url)
+            )
         }
     },
     test: {
         environment: 'node',
-        include: ['test/**/*.test.ts'],
-        server: {
-            // Inline the shared package so the `obsidian` alias applies to it. The regex is
-            // needed while it is a file: symlink (its realpath is outside node_modules).
-            deps: { inline: ['obsidian-bedrock-client', /obsidian-bedrock-client/] }
-        }
+        include: ['test/**/*.test.ts']
     }
 });

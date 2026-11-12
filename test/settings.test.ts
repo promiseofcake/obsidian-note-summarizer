@@ -1,12 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-// The package ships CJS that require()s `obsidian`, which the vitest alias cannot reach
-// when it is symlinked via file:. These tests never call Bedrock, so stub it.
-vi.mock('obsidian-bedrock-client', () => ({
-    AwsAuthError: class AwsAuthError extends Error {},
-    bedrockConverseText: vi.fn(),
-}));
-
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, mergeSettings, toConnection } from '../src/settings';
 
 describe('mergeSettings', () => {
