@@ -1,4 +1,4 @@
-import { AwsAuthError, BedrockTruncatedError } from 'obsidian-bedrock-client';
+import { AwsAuthError, BedrockTruncatedError } from './bedrock';
 import { appendSummary, hasSummarizableBody, noteBodyForPrompt, replaceWithSummary, splitFrontmatter } from './noteEdit';
 import type { NoteSummarizerSettings } from './settings';
 

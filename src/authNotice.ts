@@ -1,5 +1,5 @@
 import { Notice } from 'obsidian';
-import type { AwsAuthError } from 'obsidian-bedrock-client';
+import type { AwsAuthError } from './bedrock';
 
 /** Sticky notice for an AWS auth failure, with a Copy command button when there is a fix. */
 export function showAwsAuthNotice(error: AwsAuthError): Notice {

@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import { MarkdownView, Notice, Plugin } from 'obsidian';
 import type { TFile } from 'obsidian';
-import { bedrockConverseText, withBedrockRetry } from 'obsidian-bedrock-client';
+import { bedrockConverseText, withBedrockRetry } from './bedrock';
 import { showAwsAuthNotice } from './authNotice';
 import { resolveAwsCliPath } from './awsCli';
 import { ConfirmReplaceModal } from './confirmReplaceModal';

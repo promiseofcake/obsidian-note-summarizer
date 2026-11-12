@@ -1,7 +1,7 @@
 # Note Summarizer
 
 Obsidian plugin (desktop only) that summarizes the current note with AWS Bedrock, using
-[obsidian-bedrock-client](https://github.com/promiseofcake/obsidian-bedrock-client) and AWS CLI credentials.
+AWS CLI credentials.
 No credentials are stored by the plugin.
 
 ## Commands

@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
-import { AwsAuthError, bedrockConverseText } from 'obsidian-bedrock-client';
-import type { BedrockConnection } from 'obsidian-bedrock-client';
+import { AwsAuthError, bedrockConverseText } from './bedrock';
+import type { BedrockConnection } from './bedrock';
 import { showAwsAuthNotice } from './authNotice';
 import { resolveAwsCliPath } from './awsCli';
 import type NoteSummarizerPlugin from './main';

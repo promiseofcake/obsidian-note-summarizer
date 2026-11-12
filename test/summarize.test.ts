@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AwsAuthError, BedrockTruncatedError } from 'obsidian-bedrock-client';
+import { AwsAuthError, BedrockTruncatedError } from '../src/bedrock';
 import { DEFAULT_SETTINGS, DEFAULT_SYSTEM_PROMPT } from '../src/settings';
 import { summarizeNote } from '../src/summarize';
 import type { SummarizeDeps } from '../src/summarize';

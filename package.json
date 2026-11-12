@@ -10,7 +10,12 @@
     "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "eslint ."
   },
-  "keywords": ["obsidian", "plugin", "summarize", "bedrock"],
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "summarize",
+    "bedrock"
+  ],
   "author": "Lucas Kacher",
   "license": "MIT",
   "repository": {
@@ -18,7 +23,8 @@
     "url": "https://github.com/promiseofcake/obsidian-note-summarizer"
   },
   "dependencies": {
-    "obsidian-bedrock-client": "file:../obsidian-bedrock-client"
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@smithy/signature-v4": "^5.7.4"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
