@@ -1,0 +1,10 @@
+{
+	"id": "note-summarizer",
+	"name": "Note Summarizer",
+	"version": "0.1.0",
+	"minAppVersion": "1.7.2",
+	"description": "Summarize the current note with AWS Bedrock.",
+	"author": "Lucas Kacher",
+	"authorUrl": "https://github.com/promiseofcake",
+	"isDesktopOnly": true
+}
