@@ -23,6 +23,21 @@ describe('splitFrontmatter', () => {
     });
 });
 
+describe('splitFrontmatter fences', () => {
+    const crlf = '---\r\na: 1\r\n---\r\nhello\r\n';
+    it('handles CRLF frontmatter', () => {
+        expect(noteBodyForPrompt(crlf)).toBe('hello');
+        expect(noteBodyForPrompt(crlf)).not.toContain('a: 1');
+        expect(replaceWithSummary(crlf, 'S')).toBe('---\r\na: 1\r\n---\r\nS\n');
+    });
+    it('recognizes a closing fence with trailing space', () => {
+        expect(splitFrontmatter('---\na: 1\n--- \nbody')).toEqual({
+            frontmatter: '---\na: 1\n--- \n',
+            body: 'body'
+        });
+    });
+});
+
 describe('hasSummarizableBody', () => {
     it('is false for whitespace-only body', () => {
         expect(hasSummarizableBody('---\na: 1\n---\n  \n')).toBe(false);

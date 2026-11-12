@@ -41,7 +41,11 @@ export default class NoteSummarizerPlugin extends Plugin {
     private runCommand(mode: SummarizeMode, checking: boolean): boolean {
         const file = this.app.workspace.getActiveViewOfType(MarkdownView)?.file;
         if (!file) return false;
-        if (!checking) void this.summarize(mode, file);
+        if (!checking) {
+            this.summarize(mode, file).catch((e: unknown) => {
+                new Notice(`Summarize failed: ${e instanceof Error ? e.message : String(e)}`);
+            });
+        }
         return true;
     }
 
@@ -50,10 +54,11 @@ export default class NoteSummarizerPlugin extends Plugin {
             new Notice('A summary is already running');
             return;
         }
-        this.running = true;
-        const cliPath = resolveAwsCliPath(this.settings.awsCliPath, existsSync);
-        const working = new Notice('Summarizing…', 0);
+        let working: Notice | undefined;
         try {
+            this.running = true;
+            const cliPath = resolveAwsCliPath(this.settings.awsCliPath, existsSync);
+            working = new Notice('Summarizing…', 0);
             const settings = this.settings;
             const outcome = await summarizeNote(mode, settings, {
                 read: () => this.app.vault.read(file),
@@ -76,7 +81,7 @@ export default class NoteSummarizerPlugin extends Plugin {
             working.hide();
             this.showOutcome(mode, outcome);
         } finally {
-            working.hide();
+            working?.hide();
             this.running = false;
         }
     }
@@ -101,6 +106,9 @@ export default class NoteSummarizerPlugin extends Plugin {
                 // "Max output tokens" is the setting's exact name.
                 // eslint-disable-next-line obsidianmd/ui/sentence-case
                 new Notice('Summary was cut off at the output token limit. Raise Max output tokens in settings.');
+                break;
+            case 'changed':
+                new Notice('Note changed while summarizing; nothing was replaced. Run again, or use append.');
                 break;
             case 'error':
                 new Notice(`Summarize failed: ${outcome.message}`);

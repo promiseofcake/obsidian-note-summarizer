@@ -4,15 +4,15 @@
 // - Text after the summary section with no H1/H2 heading after it is treated as part of
 //   the summary section on a re-run, and is replaced.
 
-const FENCE = '---';
+const FRONTMATTER_DELIMITER = '---';
 
 export function splitFrontmatter(content: string): { frontmatter: string; body: string } {
-    if (!content.startsWith(FENCE + '\n')) {
+    if (!/^---\r?\n/.test(content)) {
         return { frontmatter: '', body: content };
     }
     const lines = content.split('\n');
     for (let i = 1; i < lines.length; i++) {
-        if (lines[i] === FENCE) {
+        if (lines[i].trimEnd() === FRONTMATTER_DELIMITER) {
             const frontmatter = lines.slice(0, i + 1).join('\n') + '\n';
             return { frontmatter, body: content.slice(frontmatter.length) };
         }

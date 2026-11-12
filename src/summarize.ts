@@ -1,5 +1,5 @@
 import { AwsAuthError, BedrockTruncatedError } from 'obsidian-bedrock-client';
-import { appendSummary, hasSummarizableBody, noteBodyForPrompt, replaceWithSummary } from './noteEdit';
+import { appendSummary, hasSummarizableBody, noteBodyForPrompt, replaceWithSummary, splitFrontmatter } from './noteEdit';
 import type { NoteSummarizerSettings } from './settings';
 
 export type SummarizeMode = 'append' | 'replace';
@@ -11,6 +11,7 @@ export type SummarizeOutcome =
     | { kind: 'no-cli' }
     | { kind: 'auth'; error: AwsAuthError }
     | { kind: 'truncated' }
+    | { kind: 'changed' }
     | { kind: 'error'; message: string };
 
 export interface SummarizeDeps {
@@ -35,11 +36,17 @@ export async function summarizeNote(
         if (mode === 'replace' && !(await deps.confirmReplace())) return { kind: 'cancelled' };
         const text = await deps.converse(settings.systemPrompt, noteBodyForPrompt(content));
         // Apply to the current content, not the snapshot, so edits made during the call survive.
-        await deps.process((current) =>
-            mode === 'append'
-                ? appendSummary(current, settings.summaryHeading, text)
-                : replaceWithSummary(current, text),
-        );
+        // Replace overwrites the body, so it bails out if the body changed during the call.
+        let changed = false;
+        await deps.process((current) => {
+            if (mode === 'append') return appendSummary(current, settings.summaryHeading, text);
+            if (splitFrontmatter(current).body !== splitFrontmatter(content).body) {
+                changed = true;
+                return current;
+            }
+            return replaceWithSummary(current, text);
+        });
+        if (changed) return { kind: 'changed' };
         return { kind: 'done' };
     } catch (e) {
         if (e instanceof AwsAuthError) return { kind: 'auth', error: e };

@@ -15,6 +15,12 @@ Both commands are available when a Markdown note is open. Frontmatter is never s
 
 Appending again replaces the existing `## <heading>` section instead of adding a second one. The section runs up to the next H1 or H2 heading. Text after the summary with no heading after it counts as part of the summary and is replaced too.
 
+If a note already has a hand-written `## <heading>` section with the same name (for example from a meeting template), the first append replaces that section up to the next H1 or H2. Change the **Summary heading** setting to a name your notes don't use to avoid this.
+
+### Edits during the call
+
+In replace mode, if the note body changes while the model is working, nothing is replaced and the plugin shows "Note changed while summarizing; nothing was replaced. Run again, or use append." Append mode is unaffected: it applies to the current content.
+
 ## Install (BRAT)
 
 1. Install the BRAT plugin and enable it.

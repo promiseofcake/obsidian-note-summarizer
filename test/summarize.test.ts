@@ -83,6 +83,16 @@ describe('summarizeNote', () => {
         expect(state.content).toContain('## Summary\n\nOUT');
     });
 
+    it('replace mode does not overwrite text typed during the call', async () => {
+        const { state, deps, converse } = makeDeps('raw', {
+            read: async () => 'raw',
+        });
+        state.content = 'raw\nmore';
+        expect(await summarizeNote('replace', DEFAULT_SETTINGS, deps)).toEqual({ kind: 'changed' });
+        expect(state.content).toBe('raw\nmore');
+        expect(converse).toHaveBeenCalledTimes(1);
+    });
+
     it('maps other errors to error with the message', async () => {
         const { deps, converse } = makeDeps(NOTE);
         converse.mockRejectedValue(new Error('500 boom'));
