@@ -9,7 +9,12 @@ export interface BedrockConnection {
     region: string;
     /** Model ID or inference profile ID/ARN */
     modelId: string;
+    /** Per-request timeout in ms (default DEFAULT_REQUEST_TIMEOUT_MS) */
+    timeoutMs?: number;
 }
+
+/** Long enough for a full max-tokens summary from a large note. */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 
 export interface TokenUsage {
     inputTokens: number;
@@ -27,6 +32,29 @@ export interface BedrockTextResult {
     text: string;
     stopReason: string;
     usage: TokenUsage;
+}
+
+/** The request got no response within timeoutMs. Not retried by withBedrockRetry. */
+export class BedrockTimeoutError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'BedrockTimeoutError';
+    }
+}
+
+/**
+ * requestUrl has no timeout or abort, so race it against a timer. A request that loses
+ * the race keeps running in the background; its result is ignored.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    let timer: number | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = window.setTimeout(
+            () => reject(new BedrockTimeoutError(`Bedrock request timed out after ${Math.round(ms / 1000)}s`)),
+            ms
+        );
+    });
+    return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
 }
 
 /** The model hit maxTokens (stopReason === 'max_tokens'); output was cut off. Message carries metadata only. */
@@ -116,13 +144,13 @@ async function converseOnce(conn: BedrockConnection, body: string): Promise<RawC
         if (name.toLowerCase() !== 'host') headers[name] = value;
     }
 
-    const result = await requestUrl({
+    const result = await withTimeout(requestUrl({
         url: `https://${hostname}${path}`,
         method: 'POST',
         headers,
         body,
         throw: false
-    });
+    }), conn.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
 
     let json: unknown;
     try {
