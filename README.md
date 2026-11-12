@@ -41,7 +41,7 @@ When your session expires, the plugin shows a notice with a **Copy command** but
 | AWS CLI path | auto-detect |
 | AWS profile | `default` |
 | Region | `us-east-1` |
-| Model ID | `us.anthropic.claude-sonnet-5` (provisional: availability is still being confirmed, so change it if the request is rejected) |
+| Model ID | `us.anthropic.claude-sonnet-5-5` |
 | Max output tokens | 4096 |
 | Summary heading | `Summary` |
 | System prompt | neutral meeting-notes summary, editable, with Reset to default |

@@ -17,7 +17,7 @@ export interface NoteSummarizerSettings {
 }
 
 // Provisional: the model availability check is pending. Change here only.
-export const DEFAULT_MODEL_ID = 'us.anthropic.claude-sonnet-5';
+export const DEFAULT_MODEL_ID = 'us.anthropic.claude-sonnet-5-5';
 
 export const DEFAULT_SYSTEM_PROMPT = `You summarize raw notes (often meeting notes) so they can be pasted into Slack or Confluence.
 Write in a neutral, plain tone. Use Markdown.
