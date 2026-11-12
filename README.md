@@ -30,7 +30,7 @@ In replace mode, if the note body changes while the model is working, nothing is
 ## Prerequisites
 
 - AWS CLI v2.
-- The `default` profile in `~/.aws/config`, signed in with `aws sso login --profile default`.
+- An AWS CLI profile with Bedrock access in `~/.aws/config`, signed in (for SSO, `aws sso login --profile <name>`). Set its name under **AWS profile** in settings; the default is `default`.
 
 When your session expires, the plugin shows a notice with a **Copy command** button for the login command.
 
