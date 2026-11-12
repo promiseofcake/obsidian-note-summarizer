@@ -39,15 +39,17 @@ jobs:
         run: |
           test -f main.js
           test -f manifest.json
-          test -f styles.css
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
+          assets=(main.js manifest.json)
+          # GitHub rejects empty uploads (HTTP 400), so attach styles.css only when it has content
+          if [ -s styles.css ]; then assets+=(styles.css); fi
           gh release create "$tag" \
             --title="$tag" \
             --generate-notes \
             --draft \
-            main.js manifest.json styles.css
+            "${assets[@]}"
