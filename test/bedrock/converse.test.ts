@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockResponse, requestUrl } from '../obsidian-mock';
 
 vi.mock('../../src/bedrock/credentials', async importOriginal => {
@@ -10,7 +10,7 @@ vi.mock('../../src/bedrock/credentials', async importOriginal => {
     };
 });
 
-import { AwsAuthError, BedrockTruncatedError, bedrockConverseText, invalidateAwsCliCredentials } from '../../src/bedrock';
+import { AwsAuthError, BedrockTimeoutError, BedrockTruncatedError, DEFAULT_REQUEST_TIMEOUT_MS, bedrockConverseText, invalidateAwsCliCredentials, withBedrockRetry } from '../../src/bedrock';
 
 interface SentBody {
     system?: Array<{ text: string }>;
@@ -96,5 +96,48 @@ describe('error handling', () => {
         expect(err).toBeInstanceOf(Error);
         expect((err as Error).message).toContain('400 ValidationException: bad');
         expect((err as Error).message).toContain('requestId:');
+    });
+});
+
+describe('request timeout', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('rejects with BedrockTimeoutError when no response arrives in timeoutMs', async () => {
+        vi.useFakeTimers();
+        requestUrl.mockReturnValueOnce(new Promise(() => {}));
+        const call = bedrockConverseText({ ...conn, prompt: 'hi', maxTokens: 10, timeoutMs: 5000 }).catch((e: unknown) => e);
+        await vi.advanceTimersByTimeAsync(5000);
+        const err = await call;
+        expect(err).toBeInstanceOf(BedrockTimeoutError);
+        expect((err as Error).message).toBe('Bedrock request timed out after 5s');
+    });
+
+    it('defaults to DEFAULT_REQUEST_TIMEOUT_MS', async () => {
+        vi.useFakeTimers();
+        requestUrl.mockReturnValueOnce(new Promise(() => {}));
+        let settled = false;
+        const call = bedrockConverseText({ ...conn, prompt: 'hi', maxTokens: 10 }).catch((e: unknown) => { settled = true; return e; });
+        await vi.advanceTimersByTimeAsync(DEFAULT_REQUEST_TIMEOUT_MS - 1);
+        expect(settled).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await call).toBeInstanceOf(BedrockTimeoutError);
+    });
+
+    it('clears the timer when the response arrives first', async () => {
+        vi.useFakeTimers();
+        requestUrl.mockResolvedValueOnce(ok('x'));
+        await bedrockConverseText({ ...conn, prompt: 'hi', maxTokens: 10, timeoutMs: 5000 });
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('is not retried by withBedrockRetry', async () => {
+        vi.useFakeTimers();
+        requestUrl.mockReturnValue(new Promise(() => {}));
+        const sleep = vi.fn(async () => {});
+        const call = withBedrockRetry(() => bedrockConverseText({ ...conn, prompt: 'hi', maxTokens: 10, timeoutMs: 1000 }), { sleep }).catch((e: unknown) => e);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(await call).toBeInstanceOf(BedrockTimeoutError);
+        expect(requestUrl).toHaveBeenCalledTimes(1);
+        expect(sleep).not.toHaveBeenCalled();
     });
 });

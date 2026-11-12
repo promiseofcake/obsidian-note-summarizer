@@ -29,6 +29,10 @@ Appending again replaces the summary block (from its `---` to the end of the not
 
 Other horizontal rules, and a hand-written `## Summary` heading with no rule directly above it, are left alone.
 
+### Timeouts
+
+A Bedrock request that gets no response within 120 seconds fails with "Summarize failed: Bedrock request timed out after 120s", and the note is left unchanged. Timeouts are not retried.
+
 ### Edits during the call
 
 In replace mode, if the note body changes while the model is working, nothing is replaced and the plugin shows "Note changed while summarizing; nothing was replaced. Run again, or use append." Append mode is unaffected: it applies to the current content.
